@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+{% load i18n %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% trans "SmartShop Manager" %}{% endblock %}</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden relative">
+
+    <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden md:hidden transition-opacity"></div>
+
+    <aside id="sidebar" class="w-64 bg-indigo-900 text-white flex flex-col absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-300 ease-in-out z-30 shadow-2xl md:shadow-none h-full">
+        <div class="h-16 flex items-center justify-between md:justify-center px-4 border-b border-indigo-800">
+            <h1 class="text-2xl font-bold tracking-wider">SmartShop</h1>
+            <button onclick="toggleSidebar()" class="md:hidden text-indigo-200 hover:text-white">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+        
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <a href="{% url 'home' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition hover:bg-indigo-800 {% if request.resolver_match.url_name == 'home' %}bg-indigo-800{% endif %}">
+                <span class="material-icons">dashboard</span>
+                <span>{% trans "Dashboard" %}</span>
+            </a>
+
+            <a href="{% url 'inventory' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition hover:bg-indigo-800 {% if request.resolver_match.url_name == 'inventory' %}bg-indigo-800{% endif %}">
+                <span class="material-icons">inventory_2</span>
+                <span>{% trans "Inventory" %}</span>
+            </a>
+
+            <a href="{% url 'sales' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition hover:bg-indigo-800 {% if request.resolver_match.url_name == 'sales' %}bg-indigo-800{% endif %}">
+                <span class="material-icons">point_of_sale</span>
+                <span>{% trans "Point of Sale" %}</span>
+            </a>
+
+            {% if not request.user.is_shop_staff %}
+            <a href="{% url 'analysis' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition hover:bg-indigo-800 {% if request.resolver_match.url_name == 'analysis' %}bg-indigo-800{% endif %}">
+                <span class="material-icons">analytics</span>
+                <span>{% trans "Analysis" %}</span>
+            </a>
+            {% endif %}
+            
+            <a href="{% url 'sales_history' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition hover:bg-indigo-800 {% if request.resolver_match.url_name == 'sales_history' %}bg-indigo-800{% endif %}">
+                <span class="material-icons">receipt_long</span>
+                <span>{% trans "Sales History" %}</span>
+            </a>
+
+            <a href="{% url 'khata_dashboard' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition hover:bg-indigo-800 {% if request.resolver_match.url_name == 'khata_dashboard' or request.resolver_match.url_name == 'khata_detail' %}bg-indigo-800{% endif %}">
+                <span class="material-icons">menu_book</span>
+                <span>{% trans "Khata Book" %}</span>
+            </a>
+
+            {% if not request.user.is_shop_staff %}
+            <a href="{% url 'staff_management' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition hover:bg-indigo-800 {% if request.resolver_match.url_name == 'staff_management' %}bg-indigo-800{% endif %}">
+                <span class="material-icons">manage_accounts</span>
+                <span>{% trans "Staff Management" %}</span>
+            </a>
+            
+            <a href="{% url 'gst_report' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition hover:bg-indigo-800 {% if request.resolver_match.url_name == 'gst_report' %}bg-indigo-800{% endif %}">
+                <span class="material-icons">receipt</span>
+                <span>{% trans "GST Tax Report" %}</span>
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="p-4 border-t border-indigo-800">
+            <a href="{% url 'logout' %}" class="flex items-center gap-3 px-4 py-2 text-indigo-200 hover:text-white transition">
+                <span class="material-icons">logout</span>
+                <span>{% trans "Logout" %}</span>
+            </a>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col w-full h-full overflow-hidden">
+        <header class="h-16 bg-white shadow-sm flex items-center justify-between px-4 md:px-8 z-10">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="md:hidden text-gray-600 hover:text-indigo-600 focus:outline-none">
+                    <span class="material-icons text-3xl">menu</span>
+                </button>
+                <h2 class="text-xl font-semibold text-gray-800 truncate max-w-[200px] md:max-w-none">{% block header_title %}{% trans "Welcome" %}{% endblock %}</h2>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <form action="{% url 'set_language' %}" method="post" class="flex items-center">
+                    {% csrf_token %}
+                    <input name="next" type="hidden" value="{{ request.path }}">
+                    <select name="language" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-1.5 outline-none font-medium cursor-pointer">
+                        {% get_current_language as LANGUAGE_CODE %}
+                        {% get_available_languages as LANGUAGES %}
+                        {% for lang in LANGUAGES %}
+                            <option value="{{ lang.0 }}" {% if lang.0 == LANGUAGE_CODE %}selected{% endif %}>
+                                {{ lang.1 }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </form>
+
+                <span class="material-icons text-gray-500 cursor-pointer hover:text-indigo-600 transition">notifications</span>
+                
+                <div class="relative">
+                    <div id="profileButton" onclick="toggleDropdown(event)" class="h-9 w-9 bg-indigo-100 text-indigo-800 rounded-full flex items-center justify-center font-bold shadow-sm border border-indigo-200 cursor-pointer hover:bg-indigo-200 transition" title="{{ request.user.username }}">
+                        {{ request.user.username|make_list|first|upper }}
+                    </div>
+                    
+                    <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden transform origin-top-right transition-all">
+                        <a href="{% url 'profile' %}" class="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition">
+                            <span class="material-icons text-sm align-middle mr-2">person</span> {% trans "My Profile" %}
+                        </a>
+                        <a href="{% url 'logout' %}" class="block px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 border-t border-gray-50 transition">
+                            <span class="material-icons text-sm align-middle mr-2">logout</span> {% trans "Logout" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 p-4 md:p-8 overflow-y-auto w-full">
+            {% if messages %}
+                <div class="mb-6">
+                    {% for msg in messages %}
+                        <div class="p-4 rounded-lg shadow-sm border {% if msg.tags == 'error' %}bg-red-50 border-red-200 text-red-700{% else %}bg-green-50 border-green-200 text-green-700{% endif %} flex items-center gap-3 mb-2">
+                            <span class="material-icons">{% if msg.tags == 'error' %}error_outline{% else %}check_circle_outline{% endif %}</span>
+                            {{ msg }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function toggleDropdown(event) {
+            event.stopPropagation(); 
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('profileDropdown');
+            const profileButton = document.getElementById('profileButton');
+            if (!dropdown.classList.contains('hidden') && !profileButton.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        document.body.addEventListener('htmx:configRequest', (event) => {
+        event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+        });
+    </script>
+</body>
+</html>
